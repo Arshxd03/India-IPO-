@@ -339,37 +339,38 @@ const App: React.FC = () => {
       <main className="flex-1 w-full pb-[140px] md:pb-16">
         <div className={`transition-all duration-700 ${currentView !== 'tracker' ? 'opacity-0 scale-95 pointer-events-none absolute' : 'opacity-100 scale-100'}`}>
           {currentView === 'tracker' && (
-            <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-16 flex flex-col gap-10 sm:gap-16">
+            <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-16 flex flex-col gap-8 sm:gap-16">
               <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 px-2 sm:px-0">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <h2 className="text-4xl sm:text-7xl font-black text-slate-900 dark:text-white tracking-tighter leading-[0.85]">Terminal</h2>
                     {isRefreshing && <RefreshCw size={24} className="text-emerald-500 animate-spin mt-2" />}
                   </div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-3 bg-white/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 px-4 py-2 rounded-2xl shadow-sm">
-                       <Clock size={16} className="text-slate-400" />
-                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                         Data Updated: <span className="text-emerald-500">{minutesAgo} mins ago</span>
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3 bg-white/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl shadow-sm">
+                       <Clock size={12} className="text-slate-400 sm:w-4 sm:h-4" />
+                       <span className="text-[9px] sm:text-xs font-black uppercase tracking-widest text-slate-500">
+                         Updated: <span className="text-emerald-500">{minutesAgo}m ago</span>
                        </span>
                     </div>
-                    <div className="flex items-center gap-3 bg-emerald-500/5 border border-emerald-500/10 px-4 py-2 rounded-2xl shadow-sm">
-                       <Timer size={16} className="text-emerald-500" />
-                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                         Next Auto-Refresh in: <span className="text-emerald-600 dark:text-emerald-400 font-black">{timeLeftFormatted}</span>
+                    <div className="flex items-center gap-2 sm:gap-3 bg-emerald-500/5 border border-emerald-500/10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl shadow-sm">
+                       <Timer size={12} className="text-emerald-500 sm:w-4 sm:h-4" />
+                       <span className="text-[9px] sm:text-xs font-black uppercase tracking-widest text-slate-500">
+                         Next in: <span className="text-emerald-600 dark:text-emerald-400 font-black">{timeLeftFormatted}</span>
                        </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex bg-slate-100 dark:bg-slate-900/50 p-1.5 rounded-[2.5rem] w-full sm:w-fit border border-slate-200/50 dark:border-slate-800/50 overflow-x-auto no-scrollbar shadow-inner">
+                <div className="flex bg-slate-100 dark:bg-slate-900/50 p-1 rounded-[1.5rem] sm:p-1.5 sm:rounded-[2.5rem] w-full sm:w-fit border border-slate-200/50 dark:border-slate-800/50 overflow-x-auto no-scrollbar shadow-inner">
                   {TABS.map((tab) => (
-                    <button key={tab.id} onClick={() => setActiveTab(tab.id as IPOStatus)} className={`flex-1 sm:flex-none px-6 py-3 text-[10px] font-black uppercase tracking-widest rounded-full transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xl' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}>
+                    <button key={tab.id} onClick={() => setActiveTab(tab.id as IPOStatus)} className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-full transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xl' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}>
                       {tab.label}
                     </button>
                   ))}
-                  <button onClick={() => setActiveTab('Favorites')} className={`flex-1 sm:flex-none px-6 py-3 text-[10px] font-black uppercase tracking-widest rounded-full transition-all flex items-center gap-2 ${activeTab === 'Favorites' ? 'bg-white dark:bg-slate-800 text-rose-500 shadow-xl' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}>
-                     <Heart size={12} fill={activeTab === 'Favorites' ? 'currentColor' : 'none'} /> Saved
+                  <button onClick={() => setActiveTab('Favorites')} className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-full transition-all flex items-center gap-2 ${activeTab === 'Favorites' ? 'bg-white dark:bg-slate-800 text-rose-500 shadow-xl' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}>
+                     {/* Fix: removed invalid sm:size prop and replaced with responsive classes */}
+                     <Heart size={10} className="sm:w-3 sm:h-3" fill={activeTab === 'Favorites' ? 'currentColor' : 'none'} /> Saved
                   </button>
                 </div>
               </div>
@@ -392,9 +393,9 @@ const App: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-32 bg-white/40 dark:bg-slate-900/20 rounded-[4rem] border-4 border-dashed border-slate-100 dark:border-slate-800/50">
+                <div className="flex flex-col items-center justify-center py-32 bg-white/40 dark:bg-slate-900/20 rounded-[2.5rem] sm:rounded-[4rem] border-4 border-dashed border-slate-100 dark:border-slate-800/50">
                   <Search size={48} className="text-slate-300 dark:text-slate-700 mb-6" />
-                  <p className="text-slate-400 dark:text-slate-500 font-black uppercase tracking-widest text-center px-4">No matching IPOs found. Try another tab or refresh.</p>
+                  <p className="text-slate-400 dark:text-slate-500 font-black uppercase tracking-widest text-center px-4">No matching IPOs found.</p>
                 </div>
               )}
             </div>
