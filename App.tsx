@@ -8,9 +8,10 @@ import TickerTape from './components/TickerTape';
 import IPOAcademy from './components/IPOAcademy';
 import FinancialTools from './components/FinancialTools';
 import { fetchIPOs } from './services/ipoService';
-import { Home, BookOpen, Search, Sun, Moon, RefreshCw, LayoutDashboard, X, Heart, CloudOff, Key, ExternalLink, AlertCircle, Calculator } from 'lucide-react';
+import { Home, BookOpen, Search, Sun, Moon, RefreshCw, LayoutDashboard, X, Heart, CloudOff, Key, ExternalLink, AlertCircle, Calculator, Clock } from 'lucide-react';
 
 const LOCAL_CACHE_KEY = 'ipo_data_cache';
+const TS_KEY = 'ipo_data_timestamp';
 
 const SkeletonCard = () => (
   <div className="bg-white dark:bg-[#1e293b] p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 flex flex-col h-full animate-pulse shadow-sm">
@@ -39,6 +40,7 @@ const App: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isDataStale, setIsDataStale] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<string[]>(() => {
     const saved = localStorage.getItem('ipo_favorites');
     return saved ? JSON.parse(saved) : [];
@@ -57,18 +59,15 @@ const App: React.FC = () => {
   useEffect(() => {
     const checkKey = async () => {
       try {
-        // Safety check for window.aistudio
         // @ts-ignore
         if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
           // @ts-ignore
           const hasKey = await window.aistudio.hasSelectedApiKey();
           setHasApiKey(hasKey);
         } else {
-          // Fallback if not in environment with aistudio key management
           setHasApiKey(true); 
         }
       } catch (err) {
-        console.warn("Key check failed, assuming development mode", err);
         setHasApiKey(true);
       }
     };
@@ -106,33 +105,42 @@ const App: React.FC = () => {
     setFavorites(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
   };
 
-  const loadIPOData = useCallback(async (isSilent = false, forceRefresh = false) => {
-    const cachedData = localStorage.getItem(LOCAL_CACHE_KEY);
-    if (cachedData && !forceRefresh) {
-      setIpos(JSON.parse(cachedData));
-      setIsLoading(false);
-    } else if (!isSilent) {
-      setIsLoading(true);
+  const updateTimestampDisplay = () => {
+    const ts = localStorage.getItem(TS_KEY);
+    if (ts) {
+      const date = new Date(parseInt(ts));
+      setLastUpdated(date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     }
+  };
 
+  const loadIPOData = useCallback(async (isSilent = false, forceRefresh = false) => {
+    if (!isSilent) setIsLoading(true);
     setIsRefreshing(true);
     setApiError(null);
+
     try {
       const data = await fetchIPOs(forceRefresh);
       setIpos(data);
-      // Check if data contains any non-live items (mock data)
       setIsDataStale(!data.every(i => i.isLive));
+      updateTimestampDisplay();
     } catch (error: any) {
-      console.error("Failed to load IPO data:", error);
+      console.error("Data fetch error:", error);
+      
+      // Serve fallback data if attached to the error
+      if (error.fallbackData) {
+        setIpos(error.fallbackData);
+      }
+
       if (error?.message?.includes('429')) {
-        setApiError("Daily API Limit Reached. Serving cached/estimated data.");
+        setApiError("Live data is resting. Using latest cached info.");
       } else if (error?.message?.includes("Requested entity was not found")) {
         setApiError("API Key mismatch. Please re-select your key.");
         setHasApiKey(false);
       } else {
-        setApiError("Unable to sync live markets. Check your connection.");
+        setApiError("Terminal connection weak. Showing latest snapshots.");
       }
       setIsDataStale(true);
+      updateTimestampDisplay();
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -221,7 +229,7 @@ const App: React.FC = () => {
               <div className="w-10 h-10 bg-[#00d09c] rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-500/20 group-hover:scale-105 transition-transform">
                 <LayoutDashboard className="text-white" size={20} strokeWidth={2.5} />
               </div>
-              <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tighter hidden xs:block">IPO LIVE</h1>
+              <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tighter hidden xs:block uppercase tracking-wider">IPO LIVE</h1>
             </div>
 
             <nav className="hidden md:flex items-center gap-3">
@@ -271,11 +279,11 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {(apiError || isDataStale) && (
-        <div className={`${apiError ? 'bg-amber-500' : 'bg-slate-600'} text-white text-[10px] font-black uppercase tracking-[0.2em] py-2 px-4 flex items-center justify-center gap-2 animate-in slide-in-from-top duration-300`}>
-          {apiError ? <CloudOff size={14} /> : <AlertCircle size={14} />}
-          {apiError || "Live Data Unavailable - Displaying Estimated Market Prices"}
-          {apiError && <button onClick={() => setApiError(null)} className="ml-4 opacity-70 hover:opacity-100"><X size={12}/></button>}
+      {apiError && (
+        <div className="bg-amber-500 text-white text-[10px] font-black uppercase tracking-[0.2em] py-3 px-4 flex items-center justify-center gap-3 animate-in slide-in-from-top duration-300 shadow-lg relative z-[45]">
+          <AlertCircle size={16} strokeWidth={3} />
+          {apiError}
+          <button onClick={() => setApiError(null)} className="ml-4 opacity-70 hover:opacity-100 transition-opacity"><X size={16} strokeWidth={3}/></button>
         </div>
       )}
 
@@ -314,18 +322,33 @@ const App: React.FC = () => {
                     <h2 className="text-4xl sm:text-7xl font-black text-slate-900 dark:text-white tracking-tighter leading-[0.85]">Terminal</h2>
                     {isRefreshing && <RefreshCw size={24} className="text-emerald-500 animate-spin mt-2" />}
                   </div>
-                  <p className="text-slate-500 dark:text-slate-400 font-bold text-sm sm:text-xl max-w-xl">
-                    {activeTab === 'Favorites' ? `Your ${favorites.length} saved investment picks.` : `Monitoring active listings across India.`}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-4">
+                    <p className="text-slate-500 dark:text-slate-400 font-bold text-sm sm:text-xl max-w-xl">
+                      {activeTab === 'Favorites' ? `Your ${favorites.length} saved investment picks.` : `Monitoring active listings across India.`}
+                    </p>
+                    {lastUpdated && (
+                      <div className="flex items-center gap-2 px-3 py-1 bg-white/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 rounded-full">
+                        <Clock size={12} className="text-slate-400" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Last Sync: {lastUpdated}</span>
+                        <button 
+                          onClick={() => loadIPOData(false, true)}
+                          className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-emerald-500 transition-all hover:rotate-180"
+                          title="Manual Refresh"
+                        >
+                          <RefreshCw size={12} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div className="flex bg-slate-100 dark:bg-slate-900/50 p-1.5 rounded-[2.5rem] w-full sm:w-fit border border-slate-200/50 dark:border-slate-800/50 overflow-x-auto no-scrollbar">
+                <div className="flex bg-slate-100 dark:bg-slate-900/50 p-1.5 rounded-[2.5rem] w-full sm:w-fit border border-slate-200/50 dark:border-slate-800/50 overflow-x-auto no-scrollbar shadow-inner">
                   {TABS.map((tab) => (
-                    <button key={tab.id} onClick={() => setActiveTab(tab.id as IPOStatus)} className={`flex-1 sm:flex-none px-6 py-3 text-[10px] font-black uppercase tracking-widest rounded-full transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xl' : 'text-slate-500'}`}>
+                    <button key={tab.id} onClick={() => setActiveTab(tab.id as IPOStatus)} className={`flex-1 sm:flex-none px-6 py-3 text-[10px] font-black uppercase tracking-widest rounded-full transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-xl' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}>
                       {tab.label}
                     </button>
                   ))}
-                  <button onClick={() => setActiveTab('Favorites')} className={`flex-1 sm:flex-none px-6 py-3 text-[10px] font-black uppercase tracking-widest rounded-full transition-all flex items-center gap-2 ${activeTab === 'Favorites' ? 'bg-white dark:bg-slate-800 text-rose-500 shadow-xl' : 'text-slate-500'}`}>
+                  <button onClick={() => setActiveTab('Favorites')} className={`flex-1 sm:flex-none px-6 py-3 text-[10px] font-black uppercase tracking-widest rounded-full transition-all flex items-center gap-2 ${activeTab === 'Favorites' ? 'bg-white dark:bg-slate-800 text-rose-500 shadow-xl' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}>
                      <Heart size={12} fill={activeTab === 'Favorites' ? 'currentColor' : 'none'} /> Saved
                   </button>
                 </div>
