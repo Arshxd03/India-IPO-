@@ -135,3 +135,37 @@ export const getIPOInsight = async (ipo: IPO): Promise<string> => {
     return "Unable to fetch AI insights at this time.";
   }
 };
+
+export const fetchDetailedListingAnalysis = async (companyName: string, sector: string) => {
+  if (!process.env.API_KEY) throw new Error("Offline");
+
+  try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const prompt = `
+      Perform a professional financial deep-dive for the recently listed Indian company: ${companyName} (Sector: ${sector}).
+      
+      Output exactly two sections:
+      1. Business Overview: Exactly 3 concise sentences explaining their business model, market position, and core operations.
+      2. Post-Listing Analysis: Exactly 2 sharp bullet points covering its listing day performance vs current trend and one key future outlook factor.
+      
+      Use professional fintech tone. Avoid disclaimers. Use Google Search for real-time accuracy.
+    `;
+
+    const response = await ai.models.generateContent({
+      model: MODEL_NAME,
+      contents: prompt,
+      config: {
+        tools: [{ googleSearch: {} }],
+      },
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("Empty response");
+
+    // Clean text to extract logical sections if possible, otherwise return raw
+    return text;
+  } catch (error: any) {
+    if (error?.message?.includes('429')) throw new Error("QUOTA_EXCEEDED");
+    throw error;
+  }
+};
