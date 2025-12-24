@@ -7,7 +7,7 @@ import InvestmentModal from './components/InvestmentModal';
 import TickerTape from './components/TickerTape';
 import IPOAcademy from './components/IPOAcademy';
 import { fetchIPOs } from './services/ipoService';
-import { Home, BookOpen, Search, Sun, Moon, RefreshCw, LayoutDashboard, X, Heart, CloudOff } from 'lucide-react';
+import { Home, BookOpen, Search, Sun, Moon, RefreshCw, LayoutDashboard, X, Heart, CloudOff, Key, ExternalLink } from 'lucide-react';
 
 const LOCAL_CACHE_KEY = 'ipo_data_cache';
 
@@ -27,6 +27,7 @@ const SkeletonCard = () => (
 );
 
 const App: React.FC = () => {
+  const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
   const [currentView, setCurrentView] = useState<AppView>('tracker');
   const [ipos, setIpos] = useState<IPO[]>([]);
   const [activeTab, setActiveTab] = useState<IPOStatus | 'Favorites'>('Open');
@@ -50,6 +51,21 @@ const App: React.FC = () => {
   });
 
   const toggleTheme = () => setDarkMode(prev => !prev);
+
+  useEffect(() => {
+    const checkKey = async () => {
+      // @ts-ignore
+      const hasKey = await window.aistudio.hasSelectedApiKey();
+      setHasApiKey(hasKey);
+    };
+    checkKey();
+  }, []);
+
+  const handleOpenKeyDialog = async () => {
+    // @ts-ignore
+    await window.aistudio.openSelectKey();
+    setHasApiKey(true); // Assume success per guidelines
+  };
 
   useEffect(() => {
     localStorage.setItem('ipo_favorites', JSON.stringify(favorites));
@@ -87,6 +103,9 @@ const App: React.FC = () => {
       console.error("Failed to load IPO data:", error);
       if (error?.message?.includes('429')) {
         setApiError("Daily API Limit Reached. Serving cached/estimated data.");
+      } else if (error?.message?.includes("Requested entity was not found")) {
+        setApiError("API Key mismatch. Please re-select your key.");
+        setHasApiKey(false);
       } else {
         setApiError("Unable to sync live markets. Check your connection.");
       }
@@ -97,10 +116,10 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (currentView === 'tracker') {
+    if (hasApiKey && currentView === 'tracker') {
       loadIPOData(true);
     }
-  }, [currentView, loadIPOData]);
+  }, [hasApiKey, currentView, loadIPOData]);
 
   const filteredIPOs = useMemo(() => {
     return ipos.filter((ipo) => {
@@ -114,6 +133,38 @@ const App: React.FC = () => {
     if (!searchQuery) return [];
     return ipos.filter((ipo) => ipo.name.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [searchQuery, ipos]);
+
+  if (hasApiKey === null) return null; // Wait for initial check
+
+  if (!hasApiKey) {
+    return (
+      <div className="min-h-screen bg-[#f8fafc] dark:bg-[#0f172a] flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white dark:bg-[#1e293b] p-10 rounded-[3rem] shadow-2xl border border-slate-100 dark:border-slate-800 text-center space-y-8">
+          <div className="w-20 h-20 bg-emerald-500/10 rounded-3xl flex items-center justify-center mx-auto">
+            <Key className="text-emerald-500" size={40} />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">API Key Required</h2>
+            <p className="text-slate-500 dark:text-slate-400 font-medium">To access real-time market data and AI insights, please select your Paid Google AI Studio API key.</p>
+          </div>
+          <button 
+            onClick={handleOpenKeyDialog}
+            className="w-full py-5 bg-emerald-500 text-white font-black uppercase tracking-widest rounded-2xl hover:bg-emerald-600 transition-all shadow-xl shadow-emerald-500/20 active:scale-95"
+          >
+            Connect API Key
+          </button>
+          <a 
+            href="https://ai.google.dev/gemini-api/docs/billing" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 text-xs font-bold text-slate-400 hover:text-emerald-500 transition-colors"
+          >
+            Learn about billing <ExternalLink size={12} />
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   const openSearchModal = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -247,7 +298,7 @@ const App: React.FC = () => {
               </div>
 
               {isLoading && filteredIPOs.length === 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 sm:gap-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-10">
                   {[1, 2, 3, 4, 5, 6].map((n) => <SkeletonCard key={n} />)}
                 </div>
               ) : filteredIPOs.length > 0 ? (
