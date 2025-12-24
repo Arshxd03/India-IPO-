@@ -2,7 +2,21 @@
 import React, { useState } from 'react';
 import { IPO, InvestmentDetails } from '../types';
 import { getIPOInsight } from '../services/geminiService';
-import { TrendingUp, Calendar, Activity, CheckCircle2, AlertCircle, Sparkles, Calculator, BarChart3, Heart, ExternalLink, Link2 } from 'lucide-react';
+import { 
+  TrendingUp, 
+  Calendar, 
+  Activity, 
+  CheckCircle2, 
+  Sparkles, 
+  Calculator, 
+  BarChart3, 
+  Heart, 
+  ExternalLink, 
+  Link2, 
+  Zap, 
+  Users2, 
+  SearchCode
+} from 'lucide-react';
 
 interface IPOCardProps {
   ipo: IPO;
@@ -72,7 +86,7 @@ const IPOCard: React.FC<IPOCardProps> = ({ ipo, onCheckInvestment, isFavorite, o
         return (
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest">
             <CheckCircle2 size={12} strokeWidth={3} />
-            Closed
+            Listed
           </div>
         );
       default:
@@ -81,9 +95,9 @@ const IPOCard: React.FC<IPOCardProps> = ({ ipo, onCheckInvestment, isFavorite, o
   };
 
   return (
-    <div className={`bg-white dark:bg-[#1e293b] p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 flex flex-col transition-all duration-300 transform hover:-translate-y-1 group hover:shadow-2xl`}>
+    <div className="bg-white dark:bg-[#1e293b] p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 flex flex-col transition-all duration-300 transform hover:-translate-y-1 group hover:shadow-2xl h-full">
       <div className="flex justify-between items-start mb-5">
-        <div className="space-y-2">
+        <div className="space-y-2 max-w-[70%]">
           <div className="flex flex-wrap items-center gap-2">
             <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${
               ipo.type === 'Mainboard' ? 'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-900/40 dark:text-indigo-300 dark:border-indigo-800' : 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800'
@@ -96,7 +110,7 @@ const IPOCard: React.FC<IPOCardProps> = ({ ipo, onCheckInvestment, isFavorite, o
               </span>
             )}
           </div>
-          <h3 className="text-xl font-black text-slate-900 dark:text-white leading-tight group-hover:text-emerald-500 transition-colors">
+          <h3 className="text-xl font-black text-slate-900 dark:text-white leading-tight group-hover:text-emerald-500 transition-colors truncate w-full">
             {ipo.name}
           </h3>
         </div>
@@ -111,6 +125,28 @@ const IPOCard: React.FC<IPOCardProps> = ({ ipo, onCheckInvestment, isFavorite, o
         </div>
       </div>
 
+      {/* Prominent GMP & Subscription Stats */}
+      <div className="grid grid-cols-2 gap-3 mb-5">
+        <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl border border-emerald-100 dark:border-emerald-800/50 flex items-center gap-3">
+          <div className="p-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
+            <Zap size={16} className="text-emerald-500" />
+          </div>
+          <div>
+            <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-widest">GMP</p>
+            <p className="text-sm font-black text-slate-900 dark:text-white">₹{ipo.gmp || 0}</p>
+          </div>
+        </div>
+        <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl border border-indigo-100 dark:border-indigo-800/50 flex items-center gap-3">
+          <div className="p-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
+            <Users2 size={16} className="text-indigo-500" />
+          </div>
+          <div>
+            <p className="text-[9px] text-indigo-600 dark:text-indigo-400 font-black uppercase tracking-widest">Subscr.</p>
+            <p className="text-sm font-black text-slate-900 dark:text-white">{ipo.subscription || 'N/A'}</p>
+          </div>
+        </div>
+      </div>
+
       <div className="mb-5 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/50">
         <div className="flex justify-between items-center">
           <div>
@@ -121,11 +157,11 @@ const IPOCard: React.FC<IPOCardProps> = ({ ipo, onCheckInvestment, isFavorite, o
           </div>
           <div className="text-right">
             <p className="text-[9px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-widest mb-1">
-              Expected Gain
+              Gain Estimate
             </p>
             <p className={`text-sm font-black flex items-center justify-end gap-1 ${isPositiveGain ? 'text-emerald-500' : 'text-slate-500'}`}>
               {isPositiveGain && <TrendingUp size={14} />}
-              {gainPercentage}% (₹{ipo.gmp})
+              {gainPercentage}%
             </p>
           </div>
         </div>
@@ -136,21 +172,17 @@ const IPOCard: React.FC<IPOCardProps> = ({ ipo, onCheckInvestment, isFavorite, o
           <p className="text-[9px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-widest mb-1 flex items-center gap-1">
             <BarChart3 size={10} /> Price Band
           </p>
-          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{ipo.priceBand}</p>
+          <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{ipo.priceBand}</p>
         </div>
         <div>
           <p className="text-[9px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-widest mb-1">Lot Size</p>
           <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{ipo.lotSize} Shares</p>
         </div>
-        <div>
-          <p className="text-[9px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-widest mb-1">Subscription</p>
-          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{ipo.subscription || 'N/A'}</p>
-        </div>
       </div>
 
       <div className="mt-auto space-y-4">
         <div className="flex flex-col sm:flex-row gap-2">
-          {ipo.status !== 'Closed' && (
+          {ipo.status === 'Open' && (
              <button 
                 onClick={handleCheck}
                 className="w-full sm:flex-1 py-3 px-4 bg-slate-900 dark:bg-slate-800 text-white dark:text-slate-200 text-xs font-black uppercase tracking-widest rounded-xl hover:bg-emerald-500 transition-colors shadow-sm flex items-center justify-center gap-2"
@@ -158,6 +190,18 @@ const IPOCard: React.FC<IPOCardProps> = ({ ipo, onCheckInvestment, isFavorite, o
                <Calculator size={14} /> Calculate
              </button>
           )}
+          
+          {ipo.status === 'Closed' && (
+            <a 
+              href="https://www.chittorgarh.com/ipo/ipo_allotment_status.asp" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-full sm:flex-1 py-3 px-4 bg-indigo-600 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-colors shadow-sm flex items-center justify-center gap-2"
+            >
+              <SearchCode size={14} /> Allotment
+            </a>
+          )}
+
           <button 
             onClick={handleFetchInsight}
             disabled={isLoadingInsight}

@@ -7,10 +7,9 @@ import InvestmentModal from './components/InvestmentModal';
 import TickerTape from './components/TickerTape';
 import IPOAcademy from './components/IPOAcademy';
 import { fetchIPOs } from './services/ipoService';
-import { Home, BookOpen, Search, Sun, Moon, RefreshCw, LayoutDashboard, X, Heart, AlertCircle, CloudOff } from 'lucide-react';
+import { Home, BookOpen, Search, Sun, Moon, RefreshCw, LayoutDashboard, X, Heart, CloudOff } from 'lucide-react';
 
 const LOCAL_CACHE_KEY = 'ipo_data_cache';
-const LOCAL_CACHE_TS = 'ipo_data_timestamp';
 
 const SkeletonCard = () => (
   <div className="bg-white dark:bg-[#1e293b] p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 flex flex-col h-full animate-pulse shadow-sm">
@@ -71,7 +70,6 @@ const App: React.FC = () => {
   };
 
   const loadIPOData = useCallback(async (isSilent = false, forceRefresh = false) => {
-    // Immediate UI feedback for current state if we have it
     const cachedData = localStorage.getItem(LOCAL_CACHE_KEY);
     if (cachedData && !forceRefresh) {
       setIpos(JSON.parse(cachedData));
@@ -83,7 +81,6 @@ const App: React.FC = () => {
     setIsRefreshing(true);
     setApiError(null);
     try {
-      // Pass forceRefresh to the service layer to bypass its 60-min cache
       const data = await fetchIPOs(forceRefresh);
       setIpos(data);
     } catch (error: any) {
@@ -250,11 +247,11 @@ const App: React.FC = () => {
               </div>
 
               {isLoading && filteredIPOs.length === 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 sm:gap-10">
                   {[1, 2, 3, 4, 5, 6].map((n) => <SkeletonCard key={n} />)}
                 </div>
               ) : filteredIPOs.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-10">
                   {filteredIPOs.map((ipo, idx) => (
                     <div key={ipo.id} style={{ animationDelay: `${idx * 40}ms` }} className="animate-fade-in-up">
                       <IPOCard 
