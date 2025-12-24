@@ -1,6 +1,6 @@
 export type IPOStatus = 'Open' | 'Upcoming' | 'Closed' | 'Listed';
 export type IPOType = 'Mainboard' | 'SME';
-export type AppView = 'tracker' | 'academy';
+export type AppView = 'tracker' | 'academy' | 'tools';
 
 export interface IPO {
   id: string;

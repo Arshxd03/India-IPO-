@@ -5,8 +5,9 @@ import IPOCard from './components/IPOCard';
 import InvestmentModal from './components/InvestmentModal';
 import TickerTape from './components/TickerTape';
 import IPOAcademy from './components/IPOAcademy';
+import FinancialTools from './components/FinancialTools';
 import { fetchIPOs } from './services/ipoService';
-import { Home, BookOpen, Search, Sun, Moon, RefreshCw, LayoutDashboard, X, Heart, CloudOff, Key, ExternalLink, AlertCircle, Clock, Timer, TrendingUp } from 'lucide-react';
+import { Home, BookOpen, Search, Sun, Moon, RefreshCw, LayoutDashboard, X, Heart, CloudOff, Key, ExternalLink, AlertCircle, Clock, Timer, TrendingUp, Wrench } from 'lucide-react';
 
 const TS_KEY = 'ipo_data_timestamp';
 const CACHE_DURATION_MS = 60 * 60 * 1000;
@@ -260,6 +261,12 @@ const App: React.FC = () => {
                 Tracker
               </button>
               <button 
+                onClick={(e) => handleNavClick(e, 'tools')}
+                className={`px-6 py-2 text-[10px] font-black uppercase tracking-[0.2em] rounded-full transition-all border ${currentView === 'tools' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white border-transparent hover:bg-white/50 dark:hover:bg-slate-800/50 hover:backdrop-blur-md'}`}
+              >
+                Tools
+              </button>
+              <button 
                 onClick={(e) => handleNavClick(e, 'academy')}
                 className={`px-6 py-2 text-[10px] font-black uppercase tracking-[0.2em] rounded-full transition-all border ${currentView === 'academy' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white border-transparent hover:bg-white/50 dark:hover:bg-slate-800/50 hover:backdrop-blur-md'}`}
               >
@@ -378,13 +385,13 @@ const App: React.FC = () => {
               </div>
 
               {isLoading && filteredIPOs.length === 0 && activeTab !== 'Listed' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 sm:gap-12">
                   {[1, 2, 3, 4, 5, 6].map((n) => <SkeletonCard key={n} />)}
                 </div>
               ) : filteredIPOs.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 sm:gap-12">
                   {filteredIPOs.map((ipo, idx) => (
-                    <div key={ipo.id} style={{ animationDelay: `${idx * 40}ms` }} className="animate-fade-in-up">
+                    <div key={ipo.id} style={{ animationDelay: `${idx * 40}ms` }} className="animate-fade-in-up h-full">
                       <IPOCard 
                         ipo={ipo} 
                         onCheckInvestment={setSelectedInvestment}
@@ -404,6 +411,12 @@ const App: React.FC = () => {
           )}
         </div>
 
+        <div className={`transition-all duration-700 ${currentView !== 'tools' ? 'opacity-0 scale-95 pointer-events-none absolute' : 'opacity-100 scale-100'}`}>
+          {currentView === 'tools' && (
+            <FinancialTools onBack={() => setCurrentView('tracker')} />
+          )}
+        </div>
+
         <div className={`transition-all duration-700 ${currentView !== 'academy' ? 'opacity-0 scale-95 pointer-events-none absolute' : 'opacity-100 scale-100'}`}>
           {currentView === 'academy' && (
             <IPOAcademy onBack={() => setCurrentView('tracker')} />
@@ -413,17 +426,21 @@ const App: React.FC = () => {
 
       <nav className="fixed bottom-0 left-0 w-full h-24 md:hidden z-[60] px-6 pb-6 pointer-events-none">
         <div className="w-full h-full bg-white/75 dark:bg-slate-900/75 backdrop-blur-2xl border border-white/20 dark:border-slate-800/50 rounded-[2.8rem] shadow-xl flex items-center justify-around pointer-events-auto">
-          <button onClick={(e) => handleNavClick(e, 'tracker')} className={`flex flex-col items-center gap-1.5 w-1/3 ${currentView === 'tracker' && !isSearchModalOpen ? 'text-emerald-500 scale-110' : 'text-slate-400'}`}>
+          <button onClick={(e) => handleNavClick(e, 'tracker')} className={`flex flex-col items-center gap-1.5 w-1/4 ${currentView === 'tracker' && !isSearchModalOpen ? 'text-emerald-500 scale-110' : 'text-slate-400'}`}>
             <Home size={22} strokeWidth={currentView === 'tracker' ? 3 : 2} />
-            <span className="text-[9px] font-black uppercase tracking-widest">Market</span>
+            <span className="text-[9px] font-black uppercase tracking-widest">Dash</span>
           </button>
-          <button onClick={openSearchModal} className={`flex flex-col items-center gap-1.5 w-1/3 ${isSearchModalOpen ? 'text-emerald-500 scale-110' : 'text-slate-400'}`}>
+          <button onClick={(e) => handleNavClick(e, 'tools')} className={`flex flex-col items-center gap-1.5 w-1/4 ${currentView === 'tools' ? 'text-emerald-500 scale-110' : 'text-slate-400'}`}>
+            <Wrench size={22} strokeWidth={currentView === 'tools' ? 3 : 2} />
+            <span className="text-[9px] font-black uppercase tracking-widest">Tools</span>
+          </button>
+          <button onClick={openSearchModal} className={`flex flex-col items-center gap-1.5 w-1/4 ${isSearchModalOpen ? 'text-emerald-500 scale-110' : 'text-slate-400'}`}>
             <Search size={22} strokeWidth={isSearchModalOpen ? 3 : 2} />
             <span className="text-[9px] font-black uppercase tracking-widest">Find</span>
           </button>
-          <button onClick={(e) => handleNavClick(e, 'academy')} className={`flex flex-col items-center gap-1.5 w-1/3 ${currentView === 'academy' ? 'text-emerald-500 scale-110' : 'text-slate-400'}`}>
+          <button onClick={(e) => handleNavClick(e, 'academy')} className={`flex flex-col items-center gap-1.5 w-1/4 ${currentView === 'academy' ? 'text-emerald-500 scale-110' : 'text-slate-400'}`}>
             <BookOpen size={22} strokeWidth={currentView === 'academy' ? 3 : 2} />
-            <span className="text-[9px] font-black uppercase tracking-widest">Academy</span>
+            <span className="text-[9px] font-black uppercase tracking-widest">Learn</span>
           </button>
         </div>
       </nav>
