@@ -8,10 +8,10 @@ import TickerTape from './components/TickerTape';
 import IPOAcademy from './components/IPOAcademy';
 import FinancialTools from './components/FinancialTools';
 import { fetchIPOs } from './services/ipoService';
-import { Home, BookOpen, Search, Sun, Moon, RefreshCw, LayoutDashboard, X, Heart, CloudOff, Key, ExternalLink, AlertCircle, Calculator, Clock } from 'lucide-react';
+import { Home, BookOpen, Search, Sun, Moon, RefreshCw, LayoutDashboard, X, Heart, CloudOff, Key, ExternalLink, AlertCircle, Calculator, Clock, Timer } from 'lucide-react';
 
-const LOCAL_CACHE_KEY = 'ipo_data_cache';
 const TS_KEY = 'ipo_data_timestamp';
+const CACHE_DURATION_MS = 60 * 60 * 1000;
 
 const SkeletonCard = () => (
   <div className="bg-white dark:bg-[#1e293b] p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 flex flex-col h-full animate-pulse shadow-sm">
@@ -40,7 +40,12 @@ const App: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isDataStale, setIsDataStale] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  
+  // Timer states
+  const [lastUpdatedTs, setLastUpdatedTs] = useState<number>(() => parseInt(localStorage.getItem(TS_KEY) || "0"));
+  const [minutesAgo, setMinutesAgo] = useState<number>(0);
+  const [timeLeftFormatted, setTimeLeftFormatted] = useState<string>("60:00");
+
   const [favorites, setFavorites] = useState<string[]>(() => {
     const saved = localStorage.getItem('ipo_favorites');
     return saved ? JSON.parse(saved) : [];
@@ -56,6 +61,7 @@ const App: React.FC = () => {
 
   const toggleTheme = () => setDarkMode(prev => !prev);
 
+  // API Key Check
   useEffect(() => {
     const checkKey = async () => {
       try {
@@ -87,6 +93,33 @@ const App: React.FC = () => {
     }
   };
 
+  // Timer Effect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (lastUpdatedTs === 0) return;
+      
+      const now = Date.now();
+      const diffMs = now - lastUpdatedTs;
+      const mins = Math.floor(diffMs / 60000);
+      setMinutesAgo(mins);
+
+      const remainingMs = Math.max(0, CACHE_DURATION_MS - diffMs);
+      const remainingSecsTotal = Math.floor(remainingMs / 1000);
+      const m = Math.floor(remainingSecsTotal / 60);
+      const s = remainingSecsTotal % 60;
+      
+      setTimeLeftFormatted(`${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+
+      // Auto-refresh trigger
+      if (remainingMs === 0 && !isRefreshing && currentView === 'tracker') {
+        console.log("Timer expired, triggering auto-refresh...");
+        loadIPOData(true, false);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [lastUpdatedTs, isRefreshing, currentView]);
+
   useEffect(() => {
     localStorage.setItem('ipo_favorites', JSON.stringify(favorites));
   }, [favorites]);
@@ -105,14 +138,6 @@ const App: React.FC = () => {
     setFavorites(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
   };
 
-  const updateTimestampDisplay = () => {
-    const ts = localStorage.getItem(TS_KEY);
-    if (ts) {
-      const date = new Date(parseInt(ts));
-      setLastUpdated(date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-    }
-  };
-
   const loadIPOData = useCallback(async (isSilent = false, forceRefresh = false) => {
     if (!isSilent) setIsLoading(true);
     setIsRefreshing(true);
@@ -122,14 +147,12 @@ const App: React.FC = () => {
       const data = await fetchIPOs(forceRefresh);
       setIpos(data);
       setIsDataStale(!data.every(i => i.isLive));
-      updateTimestampDisplay();
+      
+      const newTs = parseInt(localStorage.getItem(TS_KEY) || Date.now().toString());
+      setLastUpdatedTs(newTs);
     } catch (error: any) {
       console.error("Data fetch error:", error);
-      
-      // Serve fallback data if attached to the error
-      if (error.fallbackData) {
-        setIpos(error.fallbackData);
-      }
+      if (error.fallbackData) setIpos(error.fallbackData);
 
       if (error?.message?.includes('429')) {
         setApiError("Live data is resting. Using latest cached info.");
@@ -140,7 +163,8 @@ const App: React.FC = () => {
         setApiError("Terminal connection weak. Showing latest snapshots.");
       }
       setIsDataStale(true);
-      updateTimestampDisplay();
+      const newTs = parseInt(localStorage.getItem(TS_KEY) || Date.now().toString());
+      setLastUpdatedTs(newTs);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -322,23 +346,19 @@ const App: React.FC = () => {
                     <h2 className="text-4xl sm:text-7xl font-black text-slate-900 dark:text-white tracking-tighter leading-[0.85]">Terminal</h2>
                     {isRefreshing && <RefreshCw size={24} className="text-emerald-500 animate-spin mt-2" />}
                   </div>
-                  <div className="flex flex-wrap items-center gap-4">
-                    <p className="text-slate-500 dark:text-slate-400 font-bold text-sm sm:text-xl max-w-xl">
-                      {activeTab === 'Favorites' ? `Your ${favorites.length} saved investment picks.` : `Monitoring active listings across India.`}
-                    </p>
-                    {lastUpdated && (
-                      <div className="flex items-center gap-2 px-3 py-1 bg-white/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 rounded-full">
-                        <Clock size={12} className="text-slate-400" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Last Sync: {lastUpdated}</span>
-                        <button 
-                          onClick={() => loadIPOData(false, true)}
-                          className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-emerald-500 transition-all hover:rotate-180"
-                          title="Manual Refresh"
-                        >
-                          <RefreshCw size={12} />
-                        </button>
-                      </div>
-                    )}
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-3 bg-white/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 px-4 py-2 rounded-2xl shadow-sm">
+                       <Clock size={16} className="text-slate-400" />
+                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                         Data Updated: <span className="text-emerald-500">{minutesAgo} mins ago</span>
+                       </span>
+                    </div>
+                    <div className="flex items-center gap-3 bg-emerald-500/5 border border-emerald-500/10 px-4 py-2 rounded-2xl shadow-sm">
+                       <Timer size={16} className="text-emerald-500" />
+                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                         Next Auto-Refresh in: <span className="text-emerald-600 dark:text-emerald-400 font-black">{timeLeftFormatted}</span>
+                       </span>
+                    </div>
                   </div>
                 </div>
 

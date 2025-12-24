@@ -35,7 +35,7 @@ export const fetchIPOs = async (forceRefresh: boolean = false): Promise<IPO[]> =
     if (liveData && liveData.length > 0) {
       // Update Cache & Timestamp
       localStorage.setItem(CACHE_KEY, JSON.stringify(liveData));
-      localStorage.setItem(TS_KEY, now.toString());
+      localStorage.setItem(TS_KEY, Date.now().toString());
       return liveData;
     }
     
@@ -47,10 +47,8 @@ export const fetchIPOs = async (forceRefresh: boolean = false): Promise<IPO[]> =
     
     if (staleData) {
       console.warn("API Error/Limit. Serving stale cache.");
-      // We still throw the original error or a special one to App.tsx to show the notification
       const data = JSON.parse(staleData).map((i: IPO) => ({ ...i, isLive: false }));
       
-      // If it's a rate limit, we want the caller (App.tsx) to know so it can show the specific warning
       if (error?.message?.includes('429')) {
         (error as any).fallbackData = data;
         throw error;
