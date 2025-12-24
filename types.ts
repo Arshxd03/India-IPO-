@@ -1,7 +1,6 @@
-
-export type IPOStatus = 'Open' | 'Upcoming' | 'Closed';
+export type IPOStatus = 'Open' | 'Upcoming' | 'Closed' | 'Listed';
 export type IPOType = 'Mainboard' | 'SME';
-export type AppView = 'tracker' | 'academy' | 'tools';
+export type AppView = 'tracker' | 'academy';
 
 export interface IPO {
   id: string;
@@ -18,6 +17,11 @@ export interface IPO {
   closeDate?: string;
   groundingSources?: { title: string; uri: string }[];
   isLive?: boolean;
+  // Performance fields for Recently Listed tab
+  issuePrice?: number;
+  listingPrice?: number;
+  currentPrice?: number;
+  returns?: number;
 }
 
 export interface InvestmentDetails {

@@ -1,14 +1,12 @@
-
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { TABS } from './constants';
+import { TABS, RECENTLY_LISTED_DATA } from './constants';
 import { IPO, IPOStatus, InvestmentDetails, AppView } from './types';
 import IPOCard from './components/IPOCard';
 import InvestmentModal from './components/InvestmentModal';
 import TickerTape from './components/TickerTape';
 import IPOAcademy from './components/IPOAcademy';
-import FinancialTools from './components/FinancialTools';
 import { fetchIPOs } from './services/ipoService';
-import { Home, BookOpen, Search, Sun, Moon, RefreshCw, LayoutDashboard, X, Heart, CloudOff, Key, ExternalLink, AlertCircle, Calculator, Clock, Timer } from 'lucide-react';
+import { Home, BookOpen, Search, Sun, Moon, RefreshCw, LayoutDashboard, X, Heart, CloudOff, Key, ExternalLink, AlertCircle, Clock, Timer, TrendingUp } from 'lucide-react';
 
 const TS_KEY = 'ipo_data_timestamp';
 const CACHE_DURATION_MS = 60 * 60 * 1000;
@@ -110,9 +108,7 @@ const App: React.FC = () => {
       
       setTimeLeftFormatted(`${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
 
-      // Auto-refresh trigger
       if (remainingMs === 0 && !isRefreshing && currentView === 'tracker') {
-        console.log("Timer expired, triggering auto-refresh...");
         loadIPOData(true, false);
       }
     }, 1000);
@@ -178,6 +174,13 @@ const App: React.FC = () => {
   }, [hasApiKey, currentView, loadIPOData]);
 
   const filteredIPOs = useMemo(() => {
+    // If Recently Listed tab is active, use the hardcoded static performance data
+    if (activeTab === 'Listed') {
+      return RECENTLY_LISTED_DATA.filter(ipo => 
+        ipo.name?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
     return ipos.filter((ipo) => {
       const matchesTab = activeTab === 'Favorites' ? favorites.includes(ipo.id) : ipo.status === activeTab;
       const matchesSearch = ipo.name?.toLowerCase().includes(searchQuery.toLowerCase()) || false;
@@ -187,7 +190,8 @@ const App: React.FC = () => {
 
   const globalSearchIPOs = useMemo(() => {
     if (!searchQuery) return [];
-    return ipos.filter((ipo) => ipo.name?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
+    const all = [...ipos, ...RECENTLY_LISTED_DATA];
+    return all.filter((ipo) => ipo.name?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
   }, [searchQuery, ipos]);
 
   if (hasApiKey === null) return (
@@ -213,14 +217,6 @@ const App: React.FC = () => {
           >
             Connect API Key
           </button>
-          <a 
-            href="https://ai.google.dev/gemini-api/docs/billing" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 text-xs font-bold text-slate-400 hover:text-emerald-500 transition-colors"
-          >
-            Learn about billing <ExternalLink size={12} />
-          </a>
         </div>
       </div>
     );
@@ -268,12 +264,6 @@ const App: React.FC = () => {
                 className={`px-6 py-2 text-[10px] font-black uppercase tracking-[0.2em] rounded-full transition-all border ${currentView === 'academy' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white border-transparent hover:bg-white/50 dark:hover:bg-slate-800/50 hover:backdrop-blur-md'}`}
               >
                 Academy
-              </button>
-              <button 
-                onClick={(e) => handleNavClick(e, 'tools')}
-                className={`px-6 py-2 text-[10px] font-black uppercase tracking-[0.2em] rounded-full transition-all border ${currentView === 'tools' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white border-transparent hover:bg-white/50 dark:hover:bg-slate-800/50 hover:backdrop-blur-md'}`}
-              >
-                Tools
               </button>
             </nav>
           </div>
@@ -343,22 +333,35 @@ const App: React.FC = () => {
               <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 px-2 sm:px-0">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <h2 className="text-4xl sm:text-7xl font-black text-slate-900 dark:text-white tracking-tighter leading-[0.85]">Terminal</h2>
-                    {isRefreshing && <RefreshCw size={24} className="text-emerald-500 animate-spin mt-2" />}
+                    <h2 className="text-4xl sm:text-7xl font-black text-slate-900 dark:text-white tracking-tighter leading-[0.85]">
+                      {activeTab === 'Listed' ? 'Performance' : 'Terminal'}
+                    </h2>
+                    {isRefreshing && activeTab !== 'Listed' && <RefreshCw size={24} className="text-emerald-500 animate-spin mt-2" />}
                   </div>
                   <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                    <div className="flex items-center gap-2 sm:gap-3 bg-white/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl shadow-sm">
-                       <Clock size={12} className="text-slate-400 sm:w-4 sm:h-4" />
-                       <span className="text-[9px] sm:text-xs font-black uppercase tracking-widest text-slate-500">
-                         Updated: <span className="text-emerald-500">{minutesAgo}m ago</span>
-                       </span>
-                    </div>
-                    <div className="flex items-center gap-2 sm:gap-3 bg-emerald-500/5 border border-emerald-500/10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl shadow-sm">
-                       <Timer size={12} className="text-emerald-500 sm:w-4 sm:h-4" />
-                       <span className="text-[9px] sm:text-xs font-black uppercase tracking-widest text-slate-500">
-                         Next in: <span className="text-emerald-600 dark:text-emerald-400 font-black">{timeLeftFormatted}</span>
-                       </span>
-                    </div>
+                    {activeTab === 'Listed' ? (
+                       <div className="flex items-center gap-2 sm:gap-3 bg-indigo-500/5 border border-indigo-500/10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl shadow-sm">
+                         <TrendingUp size={12} className="text-indigo-500 sm:w-4 sm:h-4" />
+                         <span className="text-[9px] sm:text-xs font-black uppercase tracking-widest text-slate-500">
+                           Tracking: <span className="text-indigo-600 dark:text-indigo-400">Post-Listing Returns</span>
+                         </span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2 sm:gap-3 bg-white/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl shadow-sm">
+                          <Clock size={12} className="text-slate-400 sm:w-4 sm:h-4" />
+                          <span className="text-[9px] sm:text-xs font-black uppercase tracking-widest text-slate-500">
+                            Updated: <span className="text-emerald-500">{minutesAgo}m ago</span>
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 sm:gap-3 bg-emerald-500/5 border border-emerald-500/10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl shadow-sm">
+                          <Timer size={12} className="text-emerald-500 sm:w-4 sm:h-4" />
+                          <span className="text-[9px] sm:text-xs font-black uppercase tracking-widest text-slate-500">
+                            Next in: <span className="text-emerald-600 dark:text-emerald-400 font-black">{timeLeftFormatted}</span>
+                          </span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -369,13 +372,12 @@ const App: React.FC = () => {
                     </button>
                   ))}
                   <button onClick={() => setActiveTab('Favorites')} className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-full transition-all flex items-center gap-2 ${activeTab === 'Favorites' ? 'bg-white dark:bg-slate-800 text-rose-500 shadow-xl' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}>
-                     {/* Fix: removed invalid sm:size prop and replaced with responsive classes */}
                      <Heart size={10} className="sm:w-3 sm:h-3" fill={activeTab === 'Favorites' ? 'currentColor' : 'none'} /> Saved
                   </button>
                 </div>
               </div>
 
-              {isLoading && filteredIPOs.length === 0 ? (
+              {isLoading && filteredIPOs.length === 0 && activeTab !== 'Listed' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-10">
                   {[1, 2, 3, 4, 5, 6].map((n) => <SkeletonCard key={n} />)}
                 </div>
@@ -395,7 +397,7 @@ const App: React.FC = () => {
               ) : (
                 <div className="flex flex-col items-center justify-center py-32 bg-white/40 dark:bg-slate-900/20 rounded-[2.5rem] sm:rounded-[4rem] border-4 border-dashed border-slate-100 dark:border-slate-800/50">
                   <Search size={48} className="text-slate-300 dark:text-slate-700 mb-6" />
-                  <p className="text-slate-400 dark:text-slate-500 font-black uppercase tracking-widest text-center px-4">No matching IPOs found.</p>
+                  <p className="text-slate-400 dark:text-slate-500 font-black uppercase tracking-widest text-center px-4">No matching items found.</p>
                 </div>
               )}
             </div>
@@ -407,31 +409,21 @@ const App: React.FC = () => {
             <IPOAcademy onBack={() => setCurrentView('tracker')} />
           )}
         </div>
-
-        <div className={`transition-all duration-700 ${currentView !== 'tools' ? 'opacity-0 scale-95 pointer-events-none absolute' : 'opacity-100 scale-100'}`}>
-          {currentView === 'tools' && (
-            <FinancialTools onBack={() => setCurrentView('tracker')} />
-          )}
-        </div>
       </main>
 
       <nav className="fixed bottom-0 left-0 w-full h-24 md:hidden z-[60] px-6 pb-6 pointer-events-none">
         <div className="w-full h-full bg-white/75 dark:bg-slate-900/75 backdrop-blur-2xl border border-white/20 dark:border-slate-800/50 rounded-[2.8rem] shadow-xl flex items-center justify-around pointer-events-auto">
-          <button onClick={(e) => handleNavClick(e, 'tracker')} className={`flex flex-col items-center gap-1.5 w-1/4 ${currentView === 'tracker' && !isSearchModalOpen ? 'text-emerald-500 scale-110' : 'text-slate-400'}`}>
+          <button onClick={(e) => handleNavClick(e, 'tracker')} className={`flex flex-col items-center gap-1.5 w-1/3 ${currentView === 'tracker' && !isSearchModalOpen ? 'text-emerald-500 scale-110' : 'text-slate-400'}`}>
             <Home size={22} strokeWidth={currentView === 'tracker' ? 3 : 2} />
             <span className="text-[9px] font-black uppercase tracking-widest">Market</span>
           </button>
-          <button onClick={openSearchModal} className={`flex flex-col items-center gap-1.5 w-1/4 ${isSearchModalOpen ? 'text-emerald-500 scale-110' : 'text-slate-400'}`}>
+          <button onClick={openSearchModal} className={`flex flex-col items-center gap-1.5 w-1/3 ${isSearchModalOpen ? 'text-emerald-500 scale-110' : 'text-slate-400'}`}>
             <Search size={22} strokeWidth={isSearchModalOpen ? 3 : 2} />
             <span className="text-[9px] font-black uppercase tracking-widest">Find</span>
           </button>
-          <button onClick={(e) => handleNavClick(e, 'academy')} className={`flex flex-col items-center gap-1.5 w-1/4 ${currentView === 'academy' ? 'text-emerald-500 scale-110' : 'text-slate-400'}`}>
+          <button onClick={(e) => handleNavClick(e, 'academy')} className={`flex flex-col items-center gap-1.5 w-1/3 ${currentView === 'academy' ? 'text-emerald-500 scale-110' : 'text-slate-400'}`}>
             <BookOpen size={22} strokeWidth={currentView === 'academy' ? 3 : 2} />
             <span className="text-[9px] font-black uppercase tracking-widest">Academy</span>
-          </button>
-          <button onClick={(e) => handleNavClick(e, 'tools')} className={`flex flex-col items-center gap-1.5 w-1/4 ${currentView === 'tools' ? 'text-emerald-500 scale-110' : 'text-slate-400'}`}>
-            <Calculator size={22} strokeWidth={currentView === 'tools' ? 3 : 2} />
-            <span className="text-[9px] font-black uppercase tracking-widest">Tools</span>
           </button>
         </div>
       </nav>

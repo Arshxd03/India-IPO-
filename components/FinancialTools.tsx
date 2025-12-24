@@ -1,21 +1,19 @@
 import React, { useState, useMemo } from 'react';
 import { 
-  Calculator, 
-  TrendingUp, 
   ArrowLeft, 
+  TrendingUp, 
+  Wallet, 
+  Calendar, 
+  Percent, 
   Info, 
   Plus, 
-  Minus, 
   Trash2, 
   Zap, 
-  Percent, 
-  PieChart as ChartIcon, 
-  Clipboard,
-  Wallet,
-  Calendar,
-  IndianRupee,
+  IndianRupee, 
+  PieChart as ChartIcon,
   Activity,
-  ChevronRight
+  History,
+  Target
 } from 'lucide-react';
 
 interface StockRow {
@@ -42,6 +40,7 @@ const FinancialTools: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [offeredShares, setOfferedShares] = useState<number>(100000);
   const [appliedShares, setAppliedShares] = useState<number>(5000000);
 
+  // Helper: Indian Currency Formatting
   const formatINR = (val: number, fractionDigits: number = 0) => {
     return new Intl.NumberFormat('en-IN', {
       maximumFractionDigits: fractionDigits,
@@ -49,6 +48,7 @@ const FinancialTools: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     }).format(val);
   };
 
+  // Helper: Number to Indian Words
   const numToWords = (num: number) => {
     if (num === 0) return "";
     if (num < 1000) return num.toString();
@@ -57,12 +57,13 @@ const FinancialTools: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     return (num / 10000000).toFixed(2).replace(/\.00$/, '') + " Crores";
   };
 
+  // SIP Calculation Logic (Local Math)
   const sipResults = useMemo(() => {
     const P = monthlyInvest;
-    const i = (returnRate || 0) / 12 / 100;
-    const n = (period || 0) * 12;
+    const i = (returnRate || 0) / 12 / 100; // Monthly interest rate
+    const n = (period || 0) * 12;          // Total months
     
-    // SIP Formula (Annuity Due): FV = P × [((1 + i)^n - 1) / i] × (1 + i)
+    // Formula: FV = P * [((1 + i)^n - 1) / i] * (1 + i)
     const sipFutureValue = P > 0 && i > 0 
       ? P * ((Math.pow(1 + i, n) - 1) / i) * (1 + i) 
       : P * n;
@@ -71,18 +72,14 @@ const FinancialTools: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const totalInvested = Math.round(P * n);
     const totalGains = totalFutureValue - totalInvested;
     
-    const gainRatio = totalFutureValue > 0 ? (totalGains / totalFutureValue) * 100 : 0;
-    const investRatio = totalFutureValue > 0 ? (totalInvested / totalFutureValue) * 100 : 0;
-    
     return {
       invested: totalInvested,
       gains: totalGains,
-      total: totalFutureValue,
-      gainRatio,
-      investRatio
+      total: totalFutureValue
     };
   }, [monthlyInvest, returnRate, period]);
 
+  // Stock Average Logic
   const avgResults = useMemo(() => {
     let totalCost = 0;
     let totalQty = 0;
@@ -96,6 +93,7 @@ const FinancialTools: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     return { totalCost, totalQty, avgPrice };
   }, [stockRows]);
 
+  // Allotment Probability Logic
   const probResults = useMemo(() => {
     const offered = Number(offeredShares) || 0;
     const applied = Number(appliedShares) || 0;
@@ -104,8 +102,8 @@ const FinancialTools: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   }, [offeredShares, appliedShares]);
 
   /**
-   * Unified Numeric Input Component
-   * Matches the visual language of professional trading terminals
+   * Numeric Terminal Input Component
+   * High usability: triggers decimal keyboard, handles Indian formatting
    */
   const NumericTerminalInput = ({ 
     label, 
@@ -113,8 +111,8 @@ const FinancialTools: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     onChange, 
     icon: Icon,
     isCurrency = false,
-    placeholder = "0",
-    isPercent = false
+    isPercent = false,
+    placeholder = "0"
   }: { 
     label: string, 
     value: number, 
@@ -155,10 +153,10 @@ const FinancialTools: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 p-8 pl-16 rounded-[2.5rem] font-black text-3xl sm:text-4xl dark:text-white focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all shadow-sm"
           />
         </div>
-        {value > 0 && isCurrency && (
+        {value > 0 && (
           <div className="flex items-center gap-2 px-4 animate-in fade-in slide-in-from-left-2">
             <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">
-              {numToWords(value)}
+              {numToWords(value)} {isCurrency ? "" : isPercent ? "%" : "Units"}
             </p>
           </div>
         )}
@@ -175,14 +173,14 @@ const FinancialTools: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-blue-500 hover:text-blue-600 transition-colors bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-6 py-3 rounded-full border border-blue-500/20 shadow-xl w-fit"
           >
             <ArrowLeft size={16} strokeWidth={3} />
-            Back to Tracker
+            Back to Dashboard
           </button>
           
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
             <div className="space-y-2">
               <h2 className="text-6xl sm:text-9xl font-black text-slate-900 dark:text-white tracking-tighter leading-none">FinTools</h2>
               <p className="text-slate-500 dark:text-slate-400 font-bold text-sm sm:text-xl max-w-xl">
-                The terminal for data-driven Indian market insights.
+                High-precision mathematical models for professional market planning.
               </p>
             </div>
 
@@ -195,7 +193,7 @@ const FinancialTools: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-16 items-start">
-          {/* Inputs Column */}
+          {/* Inputs Section (Left Side) */}
           <div className="space-y-10 order-2 lg:order-1 animate-fade-in-up">
             {activeTool === 'sip' && (
               <div className="bg-white dark:bg-slate-900 p-8 sm:p-14 rounded-[4rem] border border-slate-100 dark:border-slate-800 shadow-2xl space-y-12">
@@ -208,7 +206,7 @@ const FinancialTools: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 />
                 
                 <NumericTerminalInput 
-                  label="Expected Return Rate (p.a)" 
+                  label="Return Rate (Per Annum)" 
                   value={returnRate} 
                   onChange={setReturnRate} 
                   icon={TrendingUp} 
@@ -228,8 +226,8 @@ const FinancialTools: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               <div className="bg-white dark:bg-slate-900 p-8 sm:p-14 rounded-[4rem] border border-slate-100 dark:border-slate-800 shadow-2xl space-y-8">
                 <div className="flex items-center justify-between px-2">
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Inventory Batches</p>
-                  <button onClick={() => setStockRows([...stockRows, { id: Date.now().toString(), price: '', qty: '' }])} className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg flex items-center gap-2 hover:bg-blue-700 active:scale-95 transition-all">
-                    <Plus size={14} strokeWidth={3} /> Add Batch
+                  <button onClick={() => setStockRows([...stockRows, { id: Date.now().toString(), price: '', qty: '' }])} className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg flex items-center gap-2 hover:bg-blue-700 transition-all">
+                    <Plus size={14} strokeWidth={3} /> New Entry
                   </button>
                 </div>
                 <div className="space-y-4">
@@ -282,13 +280,13 @@ const FinancialTools: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   value={appliedShares} 
                   onChange={setAppliedShares} 
                   icon={ChartIcon}
-                  placeholder="Ex: 50,00,000"
+                  placeholder="Ex: 5,00,00,000"
                 />
               </div>
             )}
           </div>
 
-          {/* Results Column */}
+          {/* Result Dashboard (Right Side) */}
           <div className="order-1 lg:order-2 lg:sticky lg:top-32">
             <div className="bg-white dark:bg-slate-900 p-8 sm:p-12 rounded-[4rem] shadow-2xl relative overflow-hidden flex flex-col min-h-[600px] border border-slate-100 dark:border-slate-800">
               <div className="absolute top-0 right-0 p-12 opacity-[0.03] dark:opacity-[0.05] rotate-12 pointer-events-none">
@@ -298,10 +296,10 @@ const FinancialTools: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               <div className="relative z-10 flex flex-col h-full flex-1">
                 <div className="mb-10">
                   <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 dark:text-blue-400 mb-8">
-                    <ChartIcon size={12} /> Live Valuation
+                    <ChartIcon size={12} /> Valuation Engine
                   </div>
                   <h3 className="text-5xl sm:text-7xl font-black text-slate-900 dark:text-white tracking-tighter leading-tight">
-                    {activeTool === 'sip' ? 'Future Wealth' : activeTool === 'average' ? 'Unit Cost' : 'Success Odds'}
+                    {activeTool === 'sip' ? 'Wealth Potential' : activeTool === 'average' ? 'Net Weighted' : 'Winning Probability'}
                   </h3>
                 </div>
 
@@ -309,18 +307,18 @@ const FinancialTools: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   <div className="flex flex-col gap-10">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                       <div className="p-8 bg-slate-50 dark:bg-slate-950/50 rounded-[3rem] border border-slate-100 dark:border-slate-800/50">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Invested Capital</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Total Invested</p>
                         <p className="text-2xl font-black text-slate-900 dark:text-white">₹{formatINR(sipResults.invested)}</p>
                       </div>
                       <div className="p-8 bg-emerald-500/5 rounded-[3rem] border border-emerald-500/10">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-2">Est. Gains</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-2">Wealth Gained</p>
                         <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">₹{formatINR(sipResults.gains)}</p>
                       </div>
                     </div>
 
-                    <div className="p-12 bg-blue-600 text-white rounded-[3.5rem] shadow-2xl shadow-blue-600/20 animate-in zoom-in duration-500">
+                    <div className="p-12 bg-blue-600 text-white rounded-[3.5rem] shadow-2xl shadow-blue-600/20">
                        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-blue-100 mb-4 opacity-70">
-                         Maturity Value
+                         Future Value
                        </p>
                        <p className="text-5xl sm:text-7xl font-black tracking-tighter leading-none mb-4 break-all">
                          ₹{formatINR(sipResults.total)}
@@ -340,7 +338,7 @@ const FinancialTools: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     <div className="grid grid-cols-2 gap-4">
                         <div className="p-8 bg-slate-50 dark:bg-slate-950 rounded-[2.5rem] border border-slate-100 dark:border-slate-800">
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
-                                {activeTool === 'average' ? 'Total Units' : 'Total Offered'}
+                                {activeTool === 'average' ? 'Total Inventory' : 'Offered Units'}
                             </p>
                             <p className="text-2xl font-black text-slate-900 dark:text-white">
                                 {activeTool === 'average' ? avgResults.totalQty : formatINR(Number(offeredShares))}
@@ -348,7 +346,7 @@ const FinancialTools: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         </div>
                         <div className="p-8 bg-slate-50 dark:bg-slate-950 rounded-[2.5rem] border border-slate-100 dark:border-slate-800">
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
-                                {activeTool === 'average' ? 'Total Cost' : 'Total Applied'}
+                                {activeTool === 'average' ? 'Capital Deployed' : 'Applied Units'}
                             </p>
                             <p className="text-2xl font-black text-slate-900 dark:text-white">
                                 {activeTool === 'average' ? '₹' + formatINR(avgResults.totalCost) : formatINR(Number(appliedShares))}
@@ -357,7 +355,7 @@ const FinancialTools: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     </div>
                     <div className="p-12 bg-blue-600 text-white rounded-[3.5rem] shadow-2xl shadow-blue-600/20">
                         <p className="text-[11px] font-black uppercase tracking-[0.2em] text-blue-100 mb-4 opacity-70">
-                            {activeTool === 'average' ? 'Weighted Price' : 'Statistical Probability'}
+                            {activeTool === 'average' ? 'Average Price' : 'Success Probability'}
                         </p>
                         <p className="text-6xl sm:text-8xl font-black tracking-tighter leading-none mb-4 break-all">
                             {activeTool === 'average' ? `₹${formatINR(avgResults.avgPrice, 2)}` : `${probResults.toFixed(2)}%`}
@@ -371,7 +369,7 @@ const FinancialTools: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     <Info size={18} className="text-blue-500" />
                   </div>
                   <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed uppercase tracking-[0.15em]">
-                    Terminal projections are computed using standard mathematical models. Actual financial outcomes are subject to market risks, taxes, and bank processing fees.
+                    Projections are for informational purposes only. Actual returns depend on market cycles, inflation, and bank processing fees.
                   </p>
                 </div>
               </div>
