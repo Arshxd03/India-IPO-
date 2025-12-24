@@ -6,8 +6,9 @@ import IPOCard from './components/IPOCard';
 import InvestmentModal from './components/InvestmentModal';
 import TickerTape from './components/TickerTape';
 import IPOAcademy from './components/IPOAcademy';
+import FinancialTools from './components/FinancialTools';
 import { fetchIPOs } from './services/ipoService';
-import { Home, BookOpen, Search, Sun, Moon, RefreshCw, LayoutDashboard, X, Heart, CloudOff, Key, ExternalLink, AlertCircle } from 'lucide-react';
+import { Home, BookOpen, Search, Sun, Moon, RefreshCw, LayoutDashboard, X, Heart, CloudOff, Key, ExternalLink, AlertCircle, Calculator } from 'lucide-react';
 
 const LOCAL_CACHE_KEY = 'ipo_data_cache';
 
@@ -236,6 +237,12 @@ const App: React.FC = () => {
               >
                 Academy
               </button>
+              <button 
+                onClick={(e) => handleNavClick(e, 'tools')}
+                className={`px-6 py-2 text-[10px] font-black uppercase tracking-[0.2em] rounded-full transition-all border ${currentView === 'tools' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white border-transparent hover:bg-white/50 dark:hover:bg-slate-800/50 hover:backdrop-blur-md'}`}
+              >
+                Tools
+              </button>
             </nav>
           </div>
 
@@ -298,7 +305,7 @@ const App: React.FC = () => {
       <TickerTape />
 
       <main className="flex-1 w-full pb-[140px] md:pb-16">
-        <div className={`transition-all duration-700 ${currentView === 'academy' ? 'opacity-0 scale-95 pointer-events-none absolute' : 'opacity-100 scale-100'}`}>
+        <div className={`transition-all duration-700 ${currentView !== 'tracker' ? 'opacity-0 scale-95 pointer-events-none absolute' : 'opacity-100 scale-100'}`}>
           {currentView === 'tracker' && (
             <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-16 flex flex-col gap-10 sm:gap-16">
               <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 px-2 sm:px-0">
@@ -351,26 +358,36 @@ const App: React.FC = () => {
           )}
         </div>
 
-        <div className={`transition-all duration-700 ${currentView === 'tracker' ? 'opacity-0 scale-95 pointer-events-none absolute' : 'opacity-100 scale-100'}`}>
+        <div className={`transition-all duration-700 ${currentView !== 'academy' ? 'opacity-0 scale-95 pointer-events-none absolute' : 'opacity-100 scale-100'}`}>
           {currentView === 'academy' && (
             <IPOAcademy onBack={() => setCurrentView('tracker')} />
+          )}
+        </div>
+
+        <div className={`transition-all duration-700 ${currentView !== 'tools' ? 'opacity-0 scale-95 pointer-events-none absolute' : 'opacity-100 scale-100'}`}>
+          {currentView === 'tools' && (
+            <FinancialTools onBack={() => setCurrentView('tracker')} />
           )}
         </div>
       </main>
 
       <nav className="fixed bottom-0 left-0 w-full h-24 md:hidden z-[60] px-6 pb-6 pointer-events-none">
         <div className="w-full h-full bg-white/75 dark:bg-slate-900/75 backdrop-blur-2xl border border-white/20 dark:border-slate-800/50 rounded-[2.8rem] shadow-xl flex items-center justify-around pointer-events-auto">
-          <button onClick={(e) => handleNavClick(e, 'tracker')} className={`flex flex-col items-center gap-1.5 w-1/3 ${currentView === 'tracker' && !isSearchModalOpen ? 'text-emerald-500 scale-110' : 'text-slate-400'}`}>
+          <button onClick={(e) => handleNavClick(e, 'tracker')} className={`flex flex-col items-center gap-1.5 w-1/4 ${currentView === 'tracker' && !isSearchModalOpen ? 'text-emerald-500 scale-110' : 'text-slate-400'}`}>
             <Home size={22} strokeWidth={currentView === 'tracker' ? 3 : 2} />
             <span className="text-[9px] font-black uppercase tracking-widest">Market</span>
           </button>
-          <button onClick={openSearchModal} className={`flex flex-col items-center gap-1.5 w-1/3 ${isSearchModalOpen ? 'text-emerald-500 scale-110' : 'text-slate-400'}`}>
+          <button onClick={openSearchModal} className={`flex flex-col items-center gap-1.5 w-1/4 ${isSearchModalOpen ? 'text-emerald-500 scale-110' : 'text-slate-400'}`}>
             <Search size={22} strokeWidth={isSearchModalOpen ? 3 : 2} />
             <span className="text-[9px] font-black uppercase tracking-widest">Find</span>
           </button>
-          <button onClick={(e) => handleNavClick(e, 'academy')} className={`flex flex-col items-center gap-1.5 w-1/3 ${currentView === 'academy' ? 'text-emerald-500 scale-110' : 'text-slate-400'}`}>
+          <button onClick={(e) => handleNavClick(e, 'academy')} className={`flex flex-col items-center gap-1.5 w-1/4 ${currentView === 'academy' ? 'text-emerald-500 scale-110' : 'text-slate-400'}`}>
             <BookOpen size={22} strokeWidth={currentView === 'academy' ? 3 : 2} />
             <span className="text-[9px] font-black uppercase tracking-widest">Academy</span>
+          </button>
+          <button onClick={(e) => handleNavClick(e, 'tools')} className={`flex flex-col items-center gap-1.5 w-1/4 ${currentView === 'tools' ? 'text-emerald-500 scale-110' : 'text-slate-400'}`}>
+            <Calculator size={22} strokeWidth={currentView === 'tools' ? 3 : 2} />
+            <span className="text-[9px] font-black uppercase tracking-widest">Tools</span>
           </button>
         </div>
       </nav>
