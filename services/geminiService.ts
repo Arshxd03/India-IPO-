@@ -32,6 +32,12 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 2): Promise<T> {
 }
 
 export const fetchLiveIPOs = async (): Promise<IPO[]> => {
+  // Safety check for API key
+  if (!process.env.API_KEY) {
+    console.warn("API Key missing, skipping live fetch.");
+    return [];
+  }
+
   return withRetry(async () => {
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -91,20 +97,22 @@ export const fetchLiveIPOs = async (): Promise<IPO[]> => {
           id: ipo.id || `live-${index}-${Date.now()}`,
           lotSize: Number(ipo.lotSize) || 0,
           gmp: Number(ipo.gmp) || 0,
+          isLive: true,
           groundingSources: groundingSources.length > 0 ? groundingSources : undefined
         }));
       }
       return [];
     } catch (error: any) {
-      // Re-throw if it's a rate limit error to be caught by the retry wrapper
       if (error?.message?.includes('429')) throw error;
       console.error("Gemini Fetch Error:", error);
-      throw error;
+      return []; // Return empty array instead of crashing
     }
   });
 };
 
 export const getIPOInsight = async (ipo: IPO): Promise<string> => {
+  if (!process.env.API_KEY) return "Analytics unavailable offline.";
+
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const prompt = `
@@ -124,6 +132,6 @@ export const getIPOInsight = async (ipo: IPO): Promise<string> => {
 
     return response.text || "Insight unavailable.";
   } catch (error) {
-    return "Unable to fetch AI insights.";
+    return "Unable to fetch AI insights at this time.";
   }
 };

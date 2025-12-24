@@ -17,6 +17,7 @@ export interface IPO {
   openDate?: string;
   closeDate?: string;
   groundingSources?: { title: string; uri: string }[];
+  isLive?: boolean;
 }
 
 export interface InvestmentDetails {

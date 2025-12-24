@@ -38,14 +38,15 @@ export const fetchIPOs = async (forceRefresh: boolean = false): Promise<IPO[]> =
       return liveData;
     }
     
-    return MOCK_IPO_DATA;
+    // If no live data, return mocks marked as stale
+    return MOCK_IPO_DATA.map(i => ({ ...i, isLive: false }));
   } catch (error) {
     console.warn("Falling back to local data/mock due to error:", error);
     
     // If API fails, try to return stale cache as a last resort before mock
     const staleData = localStorage.getItem(CACHE_KEY);
-    if (staleData) return JSON.parse(staleData);
+    if (staleData) return JSON.parse(staleData).map((i: IPO) => ({ ...i, isLive: false }));
     
-    return MOCK_IPO_DATA;
+    return MOCK_IPO_DATA.map(i => ({ ...i, isLive: false }));
   }
 };

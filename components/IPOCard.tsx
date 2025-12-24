@@ -15,7 +15,8 @@ import {
   Link2, 
   Zap, 
   Users2, 
-  SearchCode
+  SearchCode,
+  AlertCircle
 } from 'lucide-react';
 
 interface IPOCardProps {
@@ -29,19 +30,23 @@ const IPOCard: React.FC<IPOCardProps> = ({ ipo, onCheckInvestment, isFavorite, o
   const [insight, setInsight] = useState<string | null>(null);
   const [isLoadingInsight, setIsLoadingInsight] = useState(false);
 
+  // Safety: If ipo is missing, return empty or skeleton
+  if (!ipo) return null;
+
   const parseCurrency = (val: string | undefined) => {
     if (!val) return 0;
     return parseFloat(val.replace(/[₹\s,]/g, ''));
   };
 
   const handleCheck = () => {
-    const prices = ipo.priceBand.replace(/[₹\s,]/g, '').split(/[–-]/);
-    const min = parseInt(prices[0]);
+    const priceString = ipo.priceBand || "0";
+    const prices = priceString.replace(/[₹\s,]/g, '').split(/[–-]/);
+    const min = parseInt(prices[0]) || 0;
     const max = prices.length > 1 ? parseInt(prices[1]) : min;
     
     onCheckInvestment({
-      companyName: ipo.name,
-      lotSize: ipo.lotSize,
+      companyName: ipo.name || "Unknown Company",
+      lotSize: ipo.lotSize || 0,
       minPrice: min,
       maxPrice: max
     });
@@ -58,13 +63,15 @@ const IPOCard: React.FC<IPOCardProps> = ({ ipo, onCheckInvestment, isFavorite, o
     setIsLoadingInsight(false);
   };
 
-  const basePrice = ipo.priceBand.includes('–') || ipo.priceBand.includes('-')
-    ? parseCurrency(ipo.priceBand.split(/[–-]/)[1]) 
-    : parseCurrency(ipo.priceBand);
+  const priceString = ipo.priceBand || "₹0";
+  const basePrice = priceString.includes('–') || priceString.includes('-')
+    ? parseCurrency(priceString.split(/[–-]/)[1]) 
+    : parseCurrency(priceString);
   
-  const estimatedListing = basePrice + ipo.gmp;
-  const gainPercentage = basePrice > 0 ? ((ipo.gmp / basePrice) * 100).toFixed(1) : "0";
-  const isPositiveGain = ipo.gmp > 0;
+  const gmp = ipo.gmp || 0;
+  const estimatedListing = basePrice + gmp;
+  const gainPercentage = basePrice > 0 ? ((gmp / basePrice) * 100).toFixed(1) : "0";
+  const isPositiveGain = gmp > 0;
 
   const StatusBadge = () => {
     switch(ipo.status) {
@@ -90,7 +97,11 @@ const IPOCard: React.FC<IPOCardProps> = ({ ipo, onCheckInvestment, isFavorite, o
           </div>
         );
       default:
-        return null;
+        return (
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-400 text-[10px] font-black uppercase tracking-widest">
+            Unknown
+          </div>
+        );
     }
   };
 
@@ -102,16 +113,21 @@ const IPOCard: React.FC<IPOCardProps> = ({ ipo, onCheckInvestment, isFavorite, o
             <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${
               ipo.type === 'Mainboard' ? 'bg-indigo-50 text-indigo-600 border-indigo-100 dark:bg-indigo-900/40 dark:text-indigo-300 dark:border-indigo-800' : 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800'
             }`}>
-              {ipo.type}
+              {ipo.type || 'SME'}
             </span>
             {ipo.sector && (
               <span className="px-2 py-0.5 bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 rounded-full text-[9px] font-black uppercase tracking-widest border border-slate-100 dark:border-slate-800">
                 {ipo.sector}
               </span>
             )}
+            {!ipo.isLive && (
+              <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-full text-[7px] font-black uppercase tracking-widest flex items-center gap-1">
+                <AlertCircle size={8} /> Estimate
+              </span>
+            )}
           </div>
           <h3 className="text-xl font-black text-slate-900 dark:text-white leading-tight group-hover:text-emerald-500 transition-colors truncate w-full">
-            {ipo.name}
+            {ipo.name || "Unknown Company"}
           </h3>
         </div>
         <div className="flex items-center gap-2">
@@ -125,7 +141,6 @@ const IPOCard: React.FC<IPOCardProps> = ({ ipo, onCheckInvestment, isFavorite, o
         </div>
       </div>
 
-      {/* Prominent GMP & Subscription Stats */}
       <div className="grid grid-cols-2 gap-3 mb-5">
         <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl border border-emerald-100 dark:border-emerald-800/50 flex items-center gap-3">
           <div className="p-2 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
@@ -172,11 +187,11 @@ const IPOCard: React.FC<IPOCardProps> = ({ ipo, onCheckInvestment, isFavorite, o
           <p className="text-[9px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-widest mb-1 flex items-center gap-1">
             <BarChart3 size={10} /> Price Band
           </p>
-          <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{ipo.priceBand}</p>
+          <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{ipo.priceBand || "N/A"}</p>
         </div>
         <div>
           <p className="text-[9px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-widest mb-1">Lot Size</p>
-          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{ipo.lotSize} Shares</p>
+          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{ipo.lotSize || 0} Shares</p>
         </div>
       </div>
 

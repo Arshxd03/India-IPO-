@@ -7,7 +7,7 @@ import InvestmentModal from './components/InvestmentModal';
 import TickerTape from './components/TickerTape';
 import IPOAcademy from './components/IPOAcademy';
 import { fetchIPOs } from './services/ipoService';
-import { Home, BookOpen, Search, Sun, Moon, RefreshCw, LayoutDashboard, X, Heart, CloudOff, Key, ExternalLink } from 'lucide-react';
+import { Home, BookOpen, Search, Sun, Moon, RefreshCw, LayoutDashboard, X, Heart, CloudOff, Key, ExternalLink, AlertCircle } from 'lucide-react';
 
 const LOCAL_CACHE_KEY = 'ipo_data_cache';
 
@@ -37,6 +37,7 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [isDataStale, setIsDataStale] = useState(false);
   const [favorites, setFavorites] = useState<string[]>(() => {
     const saved = localStorage.getItem('ipo_favorites');
     return saved ? JSON.parse(saved) : [];
@@ -54,17 +55,36 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const checkKey = async () => {
-      // @ts-ignore
-      const hasKey = await window.aistudio.hasSelectedApiKey();
-      setHasApiKey(hasKey);
+      try {
+        // Safety check for window.aistudio
+        // @ts-ignore
+        if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
+          // @ts-ignore
+          const hasKey = await window.aistudio.hasSelectedApiKey();
+          setHasApiKey(hasKey);
+        } else {
+          // Fallback if not in environment with aistudio key management
+          setHasApiKey(true); 
+        }
+      } catch (err) {
+        console.warn("Key check failed, assuming development mode", err);
+        setHasApiKey(true);
+      }
     };
     checkKey();
   }, []);
 
   const handleOpenKeyDialog = async () => {
-    // @ts-ignore
-    await window.aistudio.openSelectKey();
-    setHasApiKey(true); // Assume success per guidelines
+    try {
+      // @ts-ignore
+      if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
+        // @ts-ignore
+        await window.aistudio.openSelectKey();
+        setHasApiKey(true);
+      }
+    } catch (err) {
+      console.error("Failed to open key dialog", err);
+    }
   };
 
   useEffect(() => {
@@ -99,6 +119,8 @@ const App: React.FC = () => {
     try {
       const data = await fetchIPOs(forceRefresh);
       setIpos(data);
+      // Check if data contains any non-live items (mock data)
+      setIsDataStale(!data.every(i => i.isLive));
     } catch (error: any) {
       console.error("Failed to load IPO data:", error);
       if (error?.message?.includes('429')) {
@@ -109,6 +131,7 @@ const App: React.FC = () => {
       } else {
         setApiError("Unable to sync live markets. Check your connection.");
       }
+      setIsDataStale(true);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -124,17 +147,21 @@ const App: React.FC = () => {
   const filteredIPOs = useMemo(() => {
     return ipos.filter((ipo) => {
       const matchesTab = activeTab === 'Favorites' ? favorites.includes(ipo.id) : ipo.status === activeTab;
-      const matchesSearch = ipo.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = ipo.name?.toLowerCase().includes(searchQuery.toLowerCase()) || false;
       return matchesTab && matchesSearch;
     });
   }, [activeTab, searchQuery, ipos, favorites]);
 
   const globalSearchIPOs = useMemo(() => {
     if (!searchQuery) return [];
-    return ipos.filter((ipo) => ipo.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    return ipos.filter((ipo) => ipo.name?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
   }, [searchQuery, ipos]);
 
-  if (hasApiKey === null) return null; // Wait for initial check
+  if (hasApiKey === null) return (
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#0f172a] flex items-center justify-center">
+      <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  );
 
   if (!hasApiKey) {
     return (
@@ -237,11 +264,11 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {apiError && (
-        <div className="bg-amber-500 text-white text-[10px] font-black uppercase tracking-[0.2em] py-2 px-4 flex items-center justify-center gap-2 animate-in slide-in-from-top duration-300">
-          <CloudOff size={14} />
-          {apiError}
-          <button onClick={() => setApiError(null)} className="ml-4 opacity-70 hover:opacity-100"><X size={12}/></button>
+      {(apiError || isDataStale) && (
+        <div className={`${apiError ? 'bg-amber-500' : 'bg-slate-600'} text-white text-[10px] font-black uppercase tracking-[0.2em] py-2 px-4 flex items-center justify-center gap-2 animate-in slide-in-from-top duration-300`}>
+          {apiError ? <CloudOff size={14} /> : <AlertCircle size={14} />}
+          {apiError || "Live Data Unavailable - Displaying Estimated Market Prices"}
+          {apiError && <button onClick={() => setApiError(null)} className="ml-4 opacity-70 hover:opacity-100"><X size={12}/></button>}
         </div>
       )}
 
